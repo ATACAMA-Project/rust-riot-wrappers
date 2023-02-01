@@ -166,3 +166,6 @@ pub mod interrupt;
 pub mod main;
 
 pub mod led;
+
+#[cfg(riot_module_periph_uart)]
+pub mod uart;
