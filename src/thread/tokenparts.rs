@@ -1,4 +1,5 @@
-//! Zero-sized types with which code in threads can safely document doing things the first time.
+//! Zero-sized types for threads to document that something is done (often, done the first time)
+//! inside the thread.
 
 use core::marker::PhantomData;
 use core::mem::MaybeUninit;
@@ -10,12 +11,15 @@ pub type StartToken = TokenParts<true, true, true>;
 
 /// Data necessary to return from a thread that has received the [StartToken] permissions.
 ///
-/// This is created from the initials using [TokenParts::termination()] to erase any left-over
+/// This is created from the initials using [TokenParts::can_end()] to erase any left-over
 /// information, and certifies that no actions have been taken that forbid the thread from ever
 /// terminating (or if they have been taken, they have been undone).
-pub struct TerminationToken {
+pub struct EndToken {
     _not_send: PhantomData<*const ()>,
 }
+
+#[deprecated(note = "Renamed to EndToken")]
+pub type TerminationToken = EndToken;
 
 /// A [StartToken] that has possibly already lost some of its properties.
 ///
@@ -32,14 +36,8 @@ pub struct TerminationToken {
 /// * `FLAG_SEMANTICS`: If this is true, the thread has not assigned semantics to flags yet.
 ///
 /// (FLAG_SEMANTICS are not used yet, but are already prepared for a wrapper similar to `msg::v2`).
-pub struct TokenParts<
-    const MSG_SEMANTICS: bool,
-    const MSG_QUEUE: bool,
-    const FLAG_SEMANTICS: bool,
-    // Do we need something for "we're in a thread" factory? (Probably also doesn't need tracking
-    // b/c it can be Clone -- and everything in RIOT alerady does a cheap irq_is_in check rather
-    // than taking a ZST)
-> {
+pub struct TokenParts<const MSG_SEMANTICS: bool, const MSG_QUEUE: bool, const FLAG_SEMANTICS: bool>
+{
     pub(super) _not_send: PhantomData<*const ()>,
 }
 
@@ -55,6 +53,15 @@ impl TokenParts<true, true, true> {
     }
 }
 
+impl<const MS: bool, const MQ: bool, const FS: bool> TokenParts<MS, MQ, FS> {
+    /// Extract a token that states that code that has access to it is running in a thread (and not
+    /// in an interrupt).
+    pub fn in_thread(&self) -> InThread {
+        // unsafe: TokenParts is not Send, so we can be sure to be in a thread
+        unsafe { InThread::new_unchecked() }
+    }
+}
+
 impl<const MQ: bool, const FS: bool> TokenParts<true, MQ, FS> {
     /// Extract the claim that the thread was not previously configured with any messages that
     /// would be sent to it.
@@ -67,7 +74,7 @@ impl<const MQ: bool, const FS: bool> TokenParts<true, MQ, FS> {
     /// # #[start]
     /// # fn main(_argc: isize, _argv: *const *const u8) -> isize { panic!("Doc tests are not supposed to be run") }
     /// # use riot_wrappers::thread::*;
-    /// fn thread(tok: StartToken) -> TerminationToken {
+    /// fn thread(tok: StartToken) -> EndToken {
     ///     let (tok, semantics) = tok.take_msg_semantics();
     ///     // keep working with semantics and start receiving messages
     ///     //
@@ -75,7 +82,7 @@ impl<const MQ: bool, const FS: bool> TokenParts<true, MQ, FS> {
     ///     //
     ///     // recover semantics when everyone has returned the license to send messages
     ///     let tok = tok.return_msg_semantics(semantics);
-    ///     tok.termination()
+    ///     tok.can_end()
     /// }
     /// ```
     #[cfg(feature = "with_msg_v2")]
@@ -90,8 +97,8 @@ impl<const MQ: bool, const FS: bool> TokenParts<true, MQ, FS> {
                 _not_send: PhantomData,
             },
             // unsafe: This is the only safe way, and by construction running only once per thread.
-            // The thread can't terminate because if it takes TokenParts it has to return a
-            // termination token
+            // The thread can't terminate because if it takes TokenParts it has to return an
+            // end token
             unsafe { crate::msg::v2::NoConfiguredMessages::new() },
         )
     }
@@ -128,7 +135,7 @@ impl<const MS: bool, const FS: bool> TokenParts<MS, true, FS> {
     /// # #[start]
     /// # fn fake_start(_argc: isize, _argv: *const *const u8) -> isize { panic!("Doc tests are not supposed to be run") }
     /// # use riot_wrappers::thread::*;
-    /// fn thread(tok: StartToken) -> TerminationToken {
+    /// fn thread(tok: StartToken) -> EndToken {
     ///     tok.with_message_queue::<4, _>(|tok| {
     ///         loop {
     ///             // ...
@@ -173,9 +180,106 @@ impl<const MQ: bool> TokenParts<true, MQ, true> {
     /// nothing can safely send messages any more), even if there is a queue somewhere on the
     /// stack, it wouldn't be touched by others any more. (Of course, that's moot with the current
     /// mechanism of [TokenParts::with_message_queue()] as that diverges anyway).
-    pub fn termination(self) -> TerminationToken {
-        TerminationToken {
+    pub fn can_end(self) -> EndToken {
+        EndToken {
             _not_send: PhantomData,
         }
+    }
+
+    #[deprecated(note = "Renamed to can_end")]
+    pub fn termination(self) -> EndToken {
+        self.can_end()
+    }
+}
+
+/// Zero-size statement that the current code is not running in an interrupt
+#[derive(Copy, Clone, Debug)]
+pub struct InThread {
+    _not_send: PhantomData<*const ()>,
+}
+
+/// Zero-size statement that the current code is running in an interrupt
+#[derive(Copy, Clone, Debug)]
+pub struct InIsr {
+    _not_send: PhantomData<*const ()>,
+}
+
+impl InThread {
+    unsafe fn new_unchecked() -> Self {
+        InThread {
+            _not_send: PhantomData,
+        }
+    }
+
+    /// Check that the code is running in thread mode
+    ///
+    /// Note that this is actually running code; to avoid that, call [`TokenParts::in_thread()`],
+    /// which is a purely type-level procedure.
+    pub fn new() -> Result<Self, InIsr> {
+        #[allow(deprecated)] // It's deprecatedly pub
+        match crate::interrupt::irq_is_in() {
+            true => Err(unsafe { InIsr::new_unchecked() }),
+            false => Ok(unsafe { InThread::new_unchecked() }),
+        }
+    }
+
+    /// Wrap a `value` in a [`ValueInThread`]. This makes it non-Send, but may make additional
+    /// (safe) methods on it, using the knowledge that it is still being used inside a thread.
+    pub fn promote<T>(self, value: T) -> ValueInThread<T> {
+        ValueInThread {
+            value,
+            in_thread: self,
+        }
+    }
+}
+
+impl InIsr {
+    unsafe fn new_unchecked() -> Self {
+        InIsr {
+            _not_send: PhantomData,
+        }
+    }
+
+    /// Check that the code is running in IRQ mode
+    pub fn new() -> Result<Self, InThread> {
+        match InThread::new() {
+            Ok(i) => Err(i),
+            Err(i) => Ok(i),
+        }
+    }
+}
+
+/// A value combined with an [InThread](crate::thread::InThread) marker
+///
+/// This does barely implement anything on its own, but the module implementing `T` might provide
+/// extra methods.
+// Making the type fundamental results in ValueInThread<&Mutex<T>> being shown at Mutex's page.
+#[cfg_attr(feature = "nightly_docs", fundamental)]
+pub struct ValueInThread<T> {
+    value: T,
+    in_thread: InThread,
+}
+
+impl<T> ValueInThread<T> {
+    /// Extract the wrapped value
+    ///
+    /// This does not produce the original `in_thread` value; these are easy enough to re-obtain or
+    /// to keep a copy of around.
+    pub fn into_inner(self) -> T {
+        self.value
+    }
+}
+
+impl<T> core::ops::Deref for ValueInThread<T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        &self.value
+    }
+}
+
+impl<T> core::ops::DerefMut for ValueInThread<T> {
+    fn deref_mut(&mut self) -> &mut T {
+        &mut self.value
     }
 }
