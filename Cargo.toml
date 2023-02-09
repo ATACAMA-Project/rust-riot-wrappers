@@ -82,3 +82,6 @@ with_msg_v2 = []
 # This is primarily for documentation building; enabling it may also help users
 # of nightly when they see a mess of types.
 actual_never_type = []
+
+# On some plattforms, uart_set_mode isn't implemented yet
+uart_set_mode = []
