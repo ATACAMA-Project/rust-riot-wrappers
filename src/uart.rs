@@ -328,6 +328,7 @@ impl<'a> UartDevice<'a> {
     }
 }
 
+
 impl<'a> Drop for UartDevice<'a> {
     /// The `drop` method resets the `UART`, removes the interrupt and tries
     /// to reset the `GPIO` pins if possible
