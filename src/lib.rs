@@ -160,6 +160,9 @@ pub mod nimble {
 #[cfg(riot_module_ws281x)]
 pub mod ws281x;
 
+#[cfg(riot_module_tcs37727)]
+pub mod tcs37727;
+
 #[cfg(riot_module_microbit)]
 pub mod microbit;
 
