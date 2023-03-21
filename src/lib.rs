@@ -163,6 +163,9 @@ pub mod ws281x;
 #[cfg(riot_module_tcs37727)]
 pub mod tcs37727;
 
+#[cfg(riot_module_bmx280)]
+pub mod bmx280;
+
 #[cfg(riot_module_microbit)]
 pub mod microbit;
 
