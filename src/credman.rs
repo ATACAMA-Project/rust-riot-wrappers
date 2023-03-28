@@ -35,6 +35,26 @@ impl CredmanStatus {
     }
 }
 
+
+#[derive(Debug)]
+pub enum CredmanType {
+    CredmanTypeEmpty,
+    CredmanTypePSK,
+    CredmanTypeECDSA,
+}
+
+impl CredmanType {
+    /// Converts the given `c_int` into the matching Enum representation
+    fn from_c(n: c_int) -> credman_type_t {
+        match n {
+            Self::CredmanTypeEmpty=> credman_type_t_CREDMAN_TYPE_EMPTY,
+            Self::CredmanTypePSK => credman_type_t_CREDMAN_TYPE_PSK,
+            Self::CredmanTypeECDSA => credman_type_t_CREDMAN_TYPE_ECDSA,
+            // kann man sich die zahlen vielleicht auch aus dem C code nehmen?
+        }
+    }
+}
+
 // int credman_add(const credman_credential_t *credential);
 
 // int credman_get(credman_credential_t *credential, credman_tag_t tag, credman_type_t type);
