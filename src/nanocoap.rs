@@ -24,6 +24,91 @@ pub enum CoapMessageType {
     RST = riot_sys::COAP_TYPE_RST as isize,
 }
 
+// todo: defining Class-entires with ResponseCodes useful? (e.g.: SUCCESS(CoapResponseCode) = ...)
+pub enum CoapResponseCodeClass {
+    // Response codes with 2.x
+    Success = riot_sys::COAP_CLASS_SUCCESS as isize,
+
+    // Response codes with 4.x
+    // Can be response to any request
+    // Should contain diagnostic data as payload
+    ClientError = riot_sys::COAP_CLASS_CLIENT_FAILURE as isize,
+
+    // Response codes with 5.x
+    ServerError = riot_sys::COAP_CLASS_SERVER_FAILURE as isize,
+
+    //a = riot_sys::COAP_CLASS_REQ as isize, todo: what semantics in nanocoap.h? needed here?
+}
+
+// todo: look up additional Response Codes outside of RFC 7252
+pub enum CoapResponseCode {
+    // Success (2.x)
+    // 2.01, Response to POST and PUT
+    Created = riot_sys::COAP_CODE_CREATED as isize,
+
+    // 2.02, Response to DELETE and POST
+    Deleted = riot_sys::COAP_CODE_DELETED as isize,
+
+    // 2.03, todo: description
+    Valid = riot_sys::COAP_CODE_VALID as isize,
+
+    // 2.04, Response to POST and PUT
+    Changed = riot_sys::COAP_CODE_CHANGED as isize,
+
+    // 2.05, Response to GET, payload of packet has to have representation of the resource as payload
+    Content = riot_sys::COAP_CODE_CONTENT as isize,
+
+    // Client Error (4.x)
+    // 4.00, Server can't or won't process request due to client error (e.g. syntax errors ...)
+    BadRequest = riot_sys::COAP_CODE_BAD_REQUEST as isize,
+
+    // 4.01, Client is not authorized for requested action; don't repeat request until authorization status with server changed
+    Unauthorized = riot_sys::COAP_CODE_UNAUTHORIZED as isize,
+
+    // 4.02, Server didn't recognize one or more options; don't repeat without modification of options
+    BadOption = riot_sys::COAP_CODE_BAD_OPTION as isize,
+
+    // 4.03, Client is not authenticated; don't repeat until authentication status changed
+    Forbidden = riot_sys::COAP_CODE_FORBIDDEN as isize,
+
+    // 4.04, Server didn't find or doesn't disclose if it has the requested resource
+    NotFound = riot_sys::COAP_CODE_PATH_NOT_FOUND as isize,
+
+    // 4.05, Requested method for the resource is not allowed or requested method is not recognized by the server; doesn't need payload
+    MethodNotAllowed = riot_sys::COAP_CODE_METHOD_NOT_ALLOWED as isize,
+
+    // 4.06, todo: description
+    NotAcceptable = riot_sys::COAP_CODE_NOT_ACCEPTABLE as isize,
+
+    // 4.12, Server doesn't meet preconditions from request header
+    PreconditionFailed = riot_sys::COAP_CODE_PRECONDITION_FAILED as isize,
+
+    // 4.13, Request size is too large for server; server can put the maximum length in the respoonse payload
+    RequestEntityTooLarge = riot_sys::COAP_CODE_REQUEST_ENTITY_TOO_LARGE as isize,
+
+    // 4.15, Server or resource doesn't support media format specified in request
+    UnsupportedContentFormat = riot_sys::COAP_CODE_UNSUPPORTED_CONTENT_FORMAT as isize,
+
+    // Internal Server Error (5.x)
+    // 5.00, Generic error message, use if no other specific ServerError applies
+    InternalServerError = riot_sys::COAP_CODE_INTERNAL_SERVER_ERROR as isize,
+
+    // 5.01, Server can't fulfill request because it isn't supported (yet)
+    NotImplemented = riot_sys::COAP_CODE_NOT_IMPLEMENTED as isize,
+
+    // 5.02, Server acting as gateway or proxy encounters bad response from upstream server
+    BadGateway = riot_sys::COAP_CODE_BAD_GATEWAY as isize,
+
+    // 5.03, Server can't currently handle the request (usually temporarilly); Server sets Max-Age Option in response with number of seconds to retry after
+    ServiceUnavailible = riot_sys::COAP_CODE_SERVICE_UNAVAILABLE as isize,
+
+    // 5.04, Server acting as gateway or proxy didn't receive response from upstream server
+    GatewayTimeout = riot_sys::COAP_CODE_GATEWAY_TIMEOUT as isize,
+
+    // 5.05, Server can't or is unwilling to act as forward-proxy for URI specified in Proxy-Uri Option or Proxy-Scheme
+    ProxyingNotSupported = riot_sys::COAP_CODE_PROXYING_NOT_SUPPORTED as isize,
+}
+
 ///todo: fill
 pub enum CoapVersion {}
 
@@ -161,41 +246,65 @@ impl CoapPacket {
     }
 
     pub fn get_type(&self) -> Result<CoapMessageType, CoapPacketError> {
+        let ret: u32;
         unsafe {
-            match riot_sys::inline::coap_get_type(self.pkt as *const riot_sys::inline::coap_pkt_t) {
-                riot_sys::COAP_TYPE_CON => Ok(CoapMessageType::CON),
-                riot_sys::COAP_TYPE_NON => Ok(CoapMessageType::NON),
-                riot_sys::COAP_TYPE_ACK => Ok(CoapMessageType::ACK),
-                riot_sys::COAP_TYPE_RST => Ok(CoapMessageType::RST),
-                _ => Err(CoapPacketError::TypeMatchError),
-            }
+            ret = riot_sys::inline::coap_get_type(self.pkt as *const riot_sys::inline::coap_pkt_t)
+        }
+
+        // todo: more elegant way to match? no_std alternative to TryFrom?
+        // if elegant way is found, how to identify undefined types?
+        match ret {
+            riot_sys::COAP_TYPE_CON => Ok(CoapMessageType::CON),
+            riot_sys::COAP_TYPE_NON => Ok(CoapMessageType::NON),
+            riot_sys::COAP_TYPE_ACK => Ok(CoapMessageType::ACK),
+            riot_sys::COAP_TYPE_RST => Ok(CoapMessageType::RST),
+            _ => Err(CoapPacketError::TypeMatchError),
         }
     }
 
-    /// Response-codes as enum?
-    pub fn get_message_code_raw(&self) -> u32 {
+    // todo: Error possible or are undefined response codes caught by coap_pkt_init?
+    pub fn get_message_code(
+        &self,
+    ) -> Result<(CoapResponseCodeClass, CoapResponseCode), CoapPacketError> {
+        let ret: u32;
         unsafe {
-            riot_sys::inline::coap_get_code_raw(
-                self.pkt as *const riot_sys::inline::coap_pkt_t,
-            )
+            ret = riot_sys::inline::coap_get_code(self.pkt as *const riot_sys::inline::coap_pkt_t);
+        }
+
+        // todo: find elegant way to match
+        // ret has value ResponseClass * 100 + CodeDetail
+        match ret {
+            _ => Err(CoapPacketError::CodeMatchError),
         }
     }
 
-    /// Response-codes as enum?
-    pub fn get_message_code(&self) -> u32 {
+    // todo: Error possible or are undefined response codes caught by coap_pkt_init?
+    pub fn get_message_code_class(&self) -> Result<CoapResponseCodeClass, CoapPacketError> {
+        let ret: u32;
         unsafe {
-            riot_sys::inline::coap_get_code(
+            ret = riot_sys::inline::coap_get_code_class(
                 self.pkt as *const riot_sys::inline::coap_pkt_t,
-            )
+            );
+        }
+
+        // todo: find elegant way to match
+        match ret {
+            _ => Err(CoapPacketError::CodeMatchError),
         }
     }
 
-    /// Response-codes as enum?
-    pub fn get_message_code_detail(&self) -> u32 {
+    // todo: Error possible or are undefined response codes caught by coap_pkt_init?
+    pub fn get_message_code_detail(&self) -> Result<CoapResponseCodeClass, CoapPacketError> {
+        let ret: u32;
         unsafe {
-            riot_sys::inline::coap_get_code_detail(
+            ret = riot_sys::inline::coap_get_code_detail(
                 self.pkt as *const riot_sys::inline::coap_pkt_t,
             )
+        }
+
+        // todo: find elegant way to match
+        match ret {
+            _ => Err(CoapPacketError::CodeMatchError),
         }
     }
 
@@ -219,10 +328,14 @@ impl CoapPacket {
         }
     }
 
-    /// Response-codes as enum?
+    /// todo: how to combine CodeDetail and CodeClass?
+    /// todo: use enums for signature
     pub fn header_set_code(&self, code: u8) {
         unsafe {
-            riot_sys::inline::coap_hdr_set_code((*self.pkt).hdr as *mut riot_sys::inline::coap_hdr_t, code);
+            riot_sys::inline::coap_hdr_set_code(
+                (*self.pkt).hdr as *mut riot_sys::inline::coap_hdr_t,
+                code,
+            );
         }
     }
 
