@@ -63,7 +63,12 @@ impl CredmanType {
 // int credman_get_used_count(void);
 
 // #if here
-// int credman_load_public_key(const void *buf, size_t buf_len, ecdsa_public_key_t *out);
+pub fn load_private_key( hey : *const c_void , mut buf_len : usize, out : *mut ecdsa_public_key_t) -> Result<ecdsa_public_key_t,CredmanStatus>{
+    match CredmanStatus::from_c(credman_load_private_key(hey,buf_len,out)) {
+        CredmanStatus::CredmanSuccess => Ok(out),
+        status => Err(status),
+    }
+}
 
 // int credman_load_private_key(const void *buf, size_t buf_len, credman_credential_t *cred);
 
