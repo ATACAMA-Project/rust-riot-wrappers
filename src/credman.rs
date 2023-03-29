@@ -50,7 +50,6 @@ impl CredmanType {
             Self::CredmanTypeEmpty=> credman_type_t_CREDMAN_TYPE_EMPTY,
             Self::CredmanTypePSK => credman_type_t_CREDMAN_TYPE_PSK,
             Self::CredmanTypeECDSA => credman_type_t_CREDMAN_TYPE_ECDSA,
-            // kann man sich die zahlen vielleicht auch aus dem C code nehmen?
         }
     }
 }
