@@ -55,12 +55,32 @@ impl CredmanType {
 }
 
 // int credman_add(const credman_credential_t *credential);
+pub fn credman_add(cred: *const credman_credential_t) -> CredmanStatus{
+    let res = unsafe {credman_add(cred)};
+    CredmanStatus::from_c(res)
+}
 
 // int credman_get(credman_credential_t *credential, credman_tag_t tag, credman_type_t type);
 
+pub fn credman_get(cred: *const credman_credential_t, tag: credman_tag_t, typ: credman_type_t) -> Result<credman_credential_t,CredmanStatus>{
+    let res = unsafe{credman_get(cred,tag,typ)};
+    match CredmanStatus::from_c(res) {
+        CredmanStatus::CredmanOK => Ok(out),
+        status => Err(status),
+    }
+}
+
 // void credman_delete(credman_tag_t tag, credman_type_t type);
 
+pub fn credman_delete(tag: credman_tag_t, typ: credman_type_t) -> CredmanStatus{
+    let res = unsafe {credman_delete(tag,typ)};
+    CredmanStatus::from_c(res)
+}
+
 // int credman_get_used_count(void);
+pub fn credman_get_used_count() -> u8{
+ unsafe{credman_get_used_count()};
+}
 
 // #if here
 pub fn load_private_key( hey : *const c_void , mut buf_len : usize, out : *mut ecdsa_public_key_t) -> Result<ecdsa_public_key_t,CredmanStatus>{
