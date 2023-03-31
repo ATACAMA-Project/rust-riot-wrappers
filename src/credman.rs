@@ -78,7 +78,7 @@ pub fn credman_delete(tag: credman_tag_t, typ: credman_type_t) -> CredmanStatus{
 }
 
 // int credman_get_used_count(void);
-pub fn credman_get_used_count() -> u8{
+pub fn credman_get_used_count() -> u32{
  unsafe{credman_get_used_count()};
 }
 
