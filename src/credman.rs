@@ -61,7 +61,6 @@ pub fn credman_add(cred: *const credman_credential_t) -> CredmanStatus{
 }
 
 // int credman_get(credman_credential_t *credential, credman_tag_t tag, credman_type_t type);
-
 pub fn credman_get(cred: *const credman_credential_t, tag: credman_tag_t, typ: credman_type_t) -> Result<credman_credential_t,CredmanStatus>{
     let res = unsafe{credman_get(cred,tag,typ)};
     match CredmanStatus::from_c(res) {
@@ -71,7 +70,6 @@ pub fn credman_get(cred: *const credman_credential_t, tag: credman_tag_t, typ: c
 }
 
 // void credman_delete(credman_tag_t tag, credman_type_t type);
-
 pub fn credman_delete(tag: credman_tag_t, typ: credman_type_t) -> CredmanStatus{
     let res = unsafe {credman_delete(tag,typ)};
     CredmanStatus::from_c(res)
@@ -82,19 +80,42 @@ pub fn credman_get_used_count() -> u32{
  unsafe{credman_get_used_count()};
 }
 
-// #if here
-pub fn load_private_key( hey : *const c_void , mut buf_len : usize, out : *mut ecdsa_public_key_t) -> Result<ecdsa_public_key_t,CredmanStatus>{
-    match CredmanStatus::from_c(credman_load_private_key(hey,buf_len,out)) {
-        CredmanStatus::CredmanSuccess => Ok(out),
-        status => Err(status),
+// int credman_load_public_key(const void *buf, size_t buf_len, ecdsa_public_key_t *out);
+pub fn load_public_key( buf : *const c_void , mut buf_len : usize, out : *mut ecdsa_public_key_t) -> Result<ecdsa_public_key_t,CredmanStatus>{
+    unsafe {
+        match CredmanStatus::from_c(credman_load_public_key(buf,buf_len,out)) {
+            CredmanStatus::CredmanSuccess => Ok(out),
+            status => Err(status),
+        }
     }
 }
 
 // int credman_load_private_key(const void *buf, size_t buf_len, credman_credential_t *cred);
+pub fn load_private_key( buf : *const c_void , mut buf_len : usize, cred : *mut credman_credential_t) -> Result<credman_credential_t,CredmanStatus>{
+    unsafe {
+        match CredmanStatus::from_c(credman_load_private_key(buf,buf_len,cred)) {
+            CredmanStatus::CredmanSuccess => Ok(out),
+            status => Err(status),  
+        }
+    }
+}
 
 // int credman_load_private_ecc_key(const void *buf, size_t buf_len, credman_credential_t *cred);
+pub fn load_private_ecc_key( buf : *const c_void , mut buf_len : usize, cred : *mut credman_credential_t) -> Result<credman_credential_t,CredmanStatus>{
+    unsafe {
+        match CredmanStatus::from_c(credman_load_private_ecc_key(buf,buf_len,cred)) {
+            CredmanStatus::CredmanSuccess => Ok(out),
+            status => Err(status),  
+        }
+    }
+}
 // #endif here
 
 // #if here
 // void credman_reset(void);
+pub fn reset() {
+    unsafe {
+        credman_reset();
+    }
+}
 // #endif here
