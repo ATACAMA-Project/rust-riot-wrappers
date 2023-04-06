@@ -181,4 +181,5 @@ pub mod led;
 #[cfg(riot_module_periph_pm)]
 pub mod pm;
 
+#[cfg(riot_module_credman)]
 pub mod credman;

@@ -4,6 +4,7 @@
 
 
 use riot_sys::libc::*;
+use riot_sys::libc::c_uint;
 
 //use riot_sys::*;
 
@@ -46,7 +47,7 @@ pub enum CredmanType {
 
 impl CredmanType {
     /// Converts the given `c_int` into the matching Enum representation
-    fn from_c(n: libc::c_uint) -> Self {
+    fn from_c(n: u32) -> Self {
         match n {
             credman_type_t_CREDMAN_TYPE_EMPTYSelf => Self::CredmanTypeEmpty,
             credman_type_t_CREDMAN_TYPE_PSK => Self::CredmanTypePSK,
@@ -85,6 +86,7 @@ pub fn credman_get_used_count() -> i32{
 }
 
 // int credman_load_public_key(const void *buf, size_t buf_len, ecdsa_public_key_t *out);
+#[cfg(riot_module_credman_load)]
 pub fn credman_load_public_key( buf : *const c_void , mut buf_len : u32, out : *mut riot_sys::ecdsa_public_key_t) -> Result<riot_sys::ecdsa_public_key_t,CredmanStatus>{
     unsafe {
         match CredmanStatus::from_c(riot_sys::credman_load_public_key(buf,buf_len,out)) {
@@ -95,6 +97,7 @@ pub fn credman_load_public_key( buf : *const c_void , mut buf_len : u32, out : *
 }
 
 // int credman_load_private_key(const void *buf, size_t buf_len, credman_credential_t *cred);
+#[cfg(riot_module_credman_load)]
 pub fn credman_load_private_key( buf : *const c_void , mut buf_len : u32, cred : *mut riot_sys::credman_credential_t) -> Result<riot_sys::credman_credential_t,CredmanStatus>{
     unsafe {
         match CredmanStatus::from_c(riot_sys::credman_load_private_key(buf,buf_len,cred)) {
@@ -105,6 +108,7 @@ pub fn credman_load_private_key( buf : *const c_void , mut buf_len : u32, cred :
 }
 
 // int credman_load_private_ecc_key(const void *buf, size_t buf_len, credman_credential_t *cred);
+#[cfg(riot_module_credman_load)]
 pub fn credman_load_private_ecc_key( buf : *const c_void , mut buf_len : u32, cred : *mut riot_sys::credman_credential_t) -> Result<riot_sys::credman_credential_t,CredmanStatus>{
     unsafe {
         match CredmanStatus::from_c(riot_sys::credman_load_private_ecc_key(buf,buf_len,cred)) {
@@ -117,9 +121,9 @@ pub fn credman_load_private_ecc_key( buf : *const c_void , mut buf_len : u32, cr
 
 // #if here
 // void credman_reset(void);
-pub fn credman_reset() {
+/*pub fn credman_reset() {
     unsafe {
         riot_sys::credman_reset();
     }
-}
+}*/
 // #endif here
