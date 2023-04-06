@@ -5,7 +5,7 @@
 
 use riot_sys::libc::*;
 
-use riot_sys::*;
+//use riot_sys::*;
 
 
 #[derive(Debug)]
@@ -56,14 +56,14 @@ impl CredmanType {
 }
 
 // int credman_add(const credman_credential_t *credential);
-pub fn credman__add(cred: *const credman_credential_t) -> CredmanStatus{
-    let res = unsafe {credman_add(cred)};
+pub fn credman_add(cred: *const riot_sys::credman_credential_t) -> CredmanStatus{
+    let res = unsafe {riot_sys::credman_add(cred)};
     CredmanStatus::from_c(res)
 }
 
 // int credman_get(credman_credential_t *credential, credman_tag_t tag, credman_type_t type);
-pub fn credman__get(cred: *mut credman_credential_t, tag: credman_tag_t, typ: credman_type_t) -> Result<credman_credential_t,CredmanStatus>{
-    let res = unsafe{credman_get(cred,tag,typ)};
+pub fn credman_get(cred: *mut riot_sys::credman_credential_t, tag: riot_sys::credman_tag_t, typ: riot_sys::credman_type_t) -> Result<riot_sys::credman_credential_t,CredmanStatus>{
+    let res = unsafe{riot_sys::credman_get(cred,tag,typ)};
     match CredmanStatus::from_c(res) {
         CredmanStatus::CredmanOK => Ok(unsafe {
             *cred   
@@ -73,21 +73,21 @@ pub fn credman__get(cred: *mut credman_credential_t, tag: credman_tag_t, typ: cr
 }
 
 // void credman_delete(credman_tag_t tag, credman_type_t type);
-pub fn credman__delete(tag: credman_tag_t, typ: credman_type_t) {
+pub fn credman_delete(tag: riot_sys::credman_tag_t, typ: riot_sys::credman_type_t) {
     unsafe {
-        credman_delete(tag,typ)
+        riot_sys::credman_delete(tag,typ)
     };
 }
 
 // int credman_get_used_count(void);
-pub fn credman__get_used_count() -> i32{
- unsafe{credman_get_used_count()}
+pub fn credman_get_used_count() -> i32{
+ unsafe{riot_sys::credman_get_used_count()}
 }
 
 // int credman_load_public_key(const void *buf, size_t buf_len, ecdsa_public_key_t *out);
-pub fn load_public_key( buf : *const c_void , mut buf_len : usize, out : *mut ecdsa_public_key_t) -> Result<ecdsa_public_key_t,CredmanStatus>{
+pub fn credman_load_public_key( buf : *const c_void , mut buf_len : u32, out : *mut riot_sys::ecdsa_public_key_t) -> Result<riot_sys::ecdsa_public_key_t,CredmanStatus>{
     unsafe {
-        match CredmanStatus::from_c(credman_load_public_key(buf,buf_len,out)) {
+        match CredmanStatus::from_c(riot_sys::credman_load_public_key(buf,buf_len,out)) {
             CredmanStatus::CredmanOK => Ok(*out),
             status => Err(status),
         }
@@ -95,9 +95,9 @@ pub fn load_public_key( buf : *const c_void , mut buf_len : usize, out : *mut ec
 }
 
 // int credman_load_private_key(const void *buf, size_t buf_len, credman_credential_t *cred);
-pub fn load_private_key( buf : *const c_void , mut buf_len : usize, cred : *mut credman_credential_t) -> Result<credman_credential_t,CredmanStatus>{
+pub fn credman_load_private_key( buf : *const c_void , mut buf_len : u32, cred : *mut riot_sys::credman_credential_t) -> Result<riot_sys::credman_credential_t,CredmanStatus>{
     unsafe {
-        match CredmanStatus::from_c(credman_load_private_key(buf,buf_len,cred)) {
+        match CredmanStatus::from_c(riot_sys::credman_load_private_key(buf,buf_len,cred)) {
             CredmanStatus::CredmanOK => Ok(*cred),
             status => Err(status),  
         }
@@ -105,9 +105,9 @@ pub fn load_private_key( buf : *const c_void , mut buf_len : usize, cred : *mut 
 }
 
 // int credman_load_private_ecc_key(const void *buf, size_t buf_len, credman_credential_t *cred);
-pub fn load_private_ecc_key( buf : *const c_void , mut buf_len : usize, cred : *mut credman_credential_t) -> Result<credman_credential_t,CredmanStatus>{
+pub fn credman_load_private_ecc_key( buf : *const c_void , mut buf_len : u32, cred : *mut riot_sys::credman_credential_t) -> Result<riot_sys::credman_credential_t,CredmanStatus>{
     unsafe {
-        match CredmanStatus::from_c(credman_load_private_ecc_key(buf,buf_len,cred)) {
+        match CredmanStatus::from_c(riot_sys::credman_load_private_ecc_key(buf,buf_len,cred)) {
             CredmanStatus::CredmanOK => Ok(*cred),
             status => Err(status),  
         }
@@ -117,9 +117,9 @@ pub fn load_private_ecc_key( buf : *const c_void , mut buf_len : usize, cred : *
 
 // #if here
 // void credman_reset(void);
-pub fn reset() {
+pub fn credman_reset() {
     unsafe {
-        credman_reset();
+        riot_sys::credman_reset();
     }
 }
 // #endif here
