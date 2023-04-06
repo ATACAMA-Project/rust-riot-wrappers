@@ -3,7 +3,8 @@
 //! Authors: Henri Waller <henri@uni-bremen.de>, Lukas Terlau <terlau@uni-bremen.de> 
 
 
-use riot_sys::libc::{c_int, c_void};
+use riot_sys::libc::*;
+
 use riot_sys::*;
 
 
@@ -45,46 +46,49 @@ pub enum CredmanType {
 
 impl CredmanType {
     /// Converts the given `c_int` into the matching Enum representation
-    fn from_c(n: c_int) -> credman_type_t {
+    fn from_c(n: libc::c_uint) -> Self {
         match n {
-            Self::CredmanTypeEmpty=> credman_type_t_CREDMAN_TYPE_EMPTY,
-            Self::CredmanTypePSK => credman_type_t_CREDMAN_TYPE_PSK,
-            Self::CredmanTypeECDSA => credman_type_t_CREDMAN_TYPE_ECDSA,
+            credman_type_t_CREDMAN_TYPE_EMPTYSelf => Self::CredmanTypeEmpty,
+            credman_type_t_CREDMAN_TYPE_PSK => Self::CredmanTypePSK,
+            credman_type_t_CREDMAN_TYPE_ECDSA =>  Self::CredmanTypeECDSA,
         }
     }
 }
 
 // int credman_add(const credman_credential_t *credential);
-pub fn credman_add(cred: *const credman_credential_t) -> CredmanStatus{
+pub fn credman__add(cred: *const credman_credential_t) -> CredmanStatus{
     let res = unsafe {credman_add(cred)};
     CredmanStatus::from_c(res)
 }
 
 // int credman_get(credman_credential_t *credential, credman_tag_t tag, credman_type_t type);
-pub fn credman_get(cred: *const credman_credential_t, tag: credman_tag_t, typ: credman_type_t) -> Result<credman_credential_t,CredmanStatus>{
+pub fn credman__get(cred: *mut credman_credential_t, tag: credman_tag_t, typ: credman_type_t) -> Result<credman_credential_t,CredmanStatus>{
     let res = unsafe{credman_get(cred,tag,typ)};
     match CredmanStatus::from_c(res) {
-        CredmanStatus::CredmanOK => Ok(out),
+        CredmanStatus::CredmanOK => Ok(unsafe {
+            *cred   
+        }),
         status => Err(status),
     }
 }
 
 // void credman_delete(credman_tag_t tag, credman_type_t type);
-pub fn credman_delete(tag: credman_tag_t, typ: credman_type_t) -> CredmanStatus{
-    let res = unsafe {credman_delete(tag,typ)};
-    CredmanStatus::from_c(res)
+pub fn credman__delete(tag: credman_tag_t, typ: credman_type_t) {
+    unsafe {
+        credman_delete(tag,typ)
+    };
 }
 
 // int credman_get_used_count(void);
-pub fn credman_get_used_count() -> u32{
- unsafe{credman_get_used_count()};
+pub fn credman__get_used_count() -> i32{
+ unsafe{credman_get_used_count()}
 }
 
 // int credman_load_public_key(const void *buf, size_t buf_len, ecdsa_public_key_t *out);
 pub fn load_public_key( buf : *const c_void , mut buf_len : usize, out : *mut ecdsa_public_key_t) -> Result<ecdsa_public_key_t,CredmanStatus>{
     unsafe {
         match CredmanStatus::from_c(credman_load_public_key(buf,buf_len,out)) {
-            CredmanStatus::CredmanSuccess => Ok(out),
+            CredmanStatus::CredmanOK => Ok(*out),
             status => Err(status),
         }
     }
@@ -94,7 +98,7 @@ pub fn load_public_key( buf : *const c_void , mut buf_len : usize, out : *mut ec
 pub fn load_private_key( buf : *const c_void , mut buf_len : usize, cred : *mut credman_credential_t) -> Result<credman_credential_t,CredmanStatus>{
     unsafe {
         match CredmanStatus::from_c(credman_load_private_key(buf,buf_len,cred)) {
-            CredmanStatus::CredmanSuccess => Ok(out),
+            CredmanStatus::CredmanOK => Ok(*cred),
             status => Err(status),  
         }
     }
@@ -104,7 +108,7 @@ pub fn load_private_key( buf : *const c_void , mut buf_len : usize, cred : *mut 
 pub fn load_private_ecc_key( buf : *const c_void , mut buf_len : usize, cred : *mut credman_credential_t) -> Result<credman_credential_t,CredmanStatus>{
     unsafe {
         match CredmanStatus::from_c(credman_load_private_ecc_key(buf,buf_len,cred)) {
-            CredmanStatus::CredmanSuccess => Ok(out),
+            CredmanStatus::CredmanOK => Ok(*cred),
             status => Err(status),  
         }
     }
