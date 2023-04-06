@@ -183,3 +183,6 @@ pub mod pm;
 
 #[cfg(riot_module_auto_init)]
 pub mod auto_init;
+
+#[cfg(riot_module_periph_qdec)]
+pub mod qdec;
