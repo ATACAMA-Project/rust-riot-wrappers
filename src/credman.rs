@@ -2,7 +2,6 @@
 //!
 //! Authors: Henri Waller <henri@uni-bremen.de>, Lukas Terlau <terlau@uni-bremen.de>
 
-
 use core::ptr;
 use riot_sys::libc::c_void;
 use riot_sys::size_t;
@@ -17,7 +16,7 @@ pub enum CredmanStatus {
     CredmanInvalid,
     CredmanTypeUnknown,
     CredmanError,
-    CredmanStatusUnknown(i32),
+    CredmanStatusUnknown,
 }
 
 impl CredmanStatus {
@@ -31,31 +30,28 @@ impl CredmanStatus {
             -4 => Self::CredmanInvalid,
             -5 => Self::CredmanTypeUnknown,
             -6 => Self::CredmanError,
-            _ => Self::CredmanStatusUnknown(n),
+            _ => Self::CredmanStatusUnknown,
         }
     }
 }
 
-
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum CredmanType {
     CredmanTypeEmpty,
     CredmanTypePSK,
     CredmanTypeECDSA,
-    CredmanTypeUnknown(riot_sys::credman_type_t),
 }
 
 impl CredmanType {
     fn to_c(self) -> riot_sys::credman_type_t {
-        match n {
+        match self {
             Self::CredmanTypeEmpty => riot_sys::credman_type_t_CREDMAN_TYPE_EMPTY,
             Self::CredmanTypePSK => riot_sys::credman_type_t_CREDMAN_TYPE_PSK,
             Self::CredmanTypeECDSA => riot_sys::credman_type_t_CREDMAN_TYPE_ECDSA,
-            Self::CredmanTypeUnknown(i) => i,
         }
     }
 }
-
 
 pub struct CredentialRef {
     pub credential: riot_sys::credman_credential_t,
@@ -67,7 +63,6 @@ pub enum Params<'a> {
     Psk(PskParams<'a>),
     Ecdsa(EcdsaParams<'a>),
 }
-
 
 pub struct PskParams<'a> {
     pub key: &'a [u8],
@@ -86,7 +81,6 @@ pub struct EcdsaParams<'a> {
     client_keys: &'a [riot_sys::ecdsa_public_key_t],
 }
 
-
 impl<'a> EcdsaParams<'a> {
     pub fn new<const EC_CLIENT_KEYS_NUM: usize>(
         private_key: &'a [u8],
@@ -100,7 +94,6 @@ impl<'a> EcdsaParams<'a> {
         }
     }
 }
-
 
 pub struct EcdsaClientKeys<const EC_CLIENT_KEYS_NUM: usize> {
     client_keys_c: [riot_sys::ecdsa_public_key_t; EC_CLIENT_KEYS_NUM],
@@ -123,7 +116,6 @@ impl<const EC_CLIENT_KEYS_NUM: usize> EcdsaClientKeys<EC_CLIENT_KEYS_NUM> {
         keys
     }
 }
-
 
 pub struct Credential<'a> {
     credential: riot_sys::credman_credential_t,
@@ -178,7 +170,6 @@ impl<'a> Credential<'a> {
     }
 }
 
-
 pub fn scope<Main, RMain>(credential: &Credential, main: Main) -> Result<RMain, CredmanStatus>
 where
     Main: FnOnce() -> RMain,
@@ -193,7 +184,6 @@ where
     }
     Ok(ret)
 }
-
 
 // int credman_add(const credman_credential_t *credential);
 fn credman_add(credential: &Credential) -> CredmanStatus {
@@ -219,7 +209,6 @@ pub fn credman_get(tag: CredmanTag, typ: CredmanType) -> Result<CredentialRef, C
         status => Err(status),
     }
 }
-
 
 // int credman_get_used_count(void);
 pub fn credman_get_used_count() -> u32 {
