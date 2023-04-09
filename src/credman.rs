@@ -46,7 +46,7 @@ pub enum CredmanType {
 }
 
 impl CredmanType {
-    fn to_c(n: CredmanType) -> riot_sys::credman_type_t {
+    fn to_c(self) -> riot_sys::credman_type_t {
         match n {
             Self::CredmanTypeEmpty => riot_sys::credman_type_t_CREDMAN_TYPE_EMPTY,
             Self::CredmanTypePSK => riot_sys::credman_type_t_CREDMAN_TYPE_PSK,
@@ -114,13 +114,11 @@ impl<const EC_CLIENT_KEYS_NUM: usize> EcdsaClientKeys<EC_CLIENT_KEYS_NUM> {
                 y: ptr::null(),
             }; EC_CLIENT_KEYS_NUM],
         };
-        let mut i = 0;
-        for key in client_keys {
+        for (i, key) in client_keys.iter().enumerate() {
             keys.client_keys_c[i] = riot_sys::ecdsa_public_key_t {
                 x: key.x.as_ptr() as *const c_void,
                 y: key.y.as_ptr() as *const c_void,
             };
-            i += 1;
         }
         keys
     }
@@ -225,5 +223,5 @@ pub fn credman_get(tag: CredmanTag, typ: CredmanType) -> Result<CredentialRef, C
 
 // int credman_get_used_count(void);
 pub fn credman_get_used_count() -> u32 {
-    unsafe { riot_sys::credman_get_used_count().try_into().unwrap() }
+    unsafe { riot_sys::credman_get_used_count() as u32 }
 }
