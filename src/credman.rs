@@ -172,7 +172,7 @@ impl<'a> Credential<'a> {
         Credential {
             credential: riot_sys::credman_credential_t {
                 type_: riot_sys::credman_type_t_CREDMAN_TYPE_ECDSA,
-                tag: tag,
+                tag,
                 params: riot_sys::credman_credential_t__bindgen_ty_1 { ecdsa: ecdsa_c },
             },
             params: Params::Ecdsa(ecdsa),
