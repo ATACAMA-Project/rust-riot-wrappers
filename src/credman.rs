@@ -151,7 +151,7 @@ impl<'a> Credential<'a> {
         Credential {
             credential: riot_sys::credman_credential_t {
                 type_: riot_sys::credman_type_t_CREDMAN_TYPE_PSK,
-                tag: tag,
+                tag,
                 params: riot_sys::credman_credential_t__bindgen_ty_1 { psk: psk_c },
             },
             params: Params::Psk(psk),
