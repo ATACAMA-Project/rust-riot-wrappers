@@ -175,7 +175,7 @@ where
     Main: FnOnce() -> RMain,
 {
     let status = credman_add(credential);
-    if matches!(status, CredmanStatus::CredmanOK) {
+    if !matches!(status, CredmanStatus::CredmanOK) {
         return Err(status);
     }
     let ret = main();
