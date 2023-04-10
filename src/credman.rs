@@ -100,7 +100,7 @@ pub struct EcdsaClientKeys<const EC_CLIENT_KEYS_NUM: usize> {
 }
 
 impl<const EC_CLIENT_KEYS_NUM: usize> EcdsaClientKeys<EC_CLIENT_KEYS_NUM> {
-    fn new(client_keys: &[EcdsaPublicKey]) -> Self {
+    pub fn new(client_keys: &[EcdsaPublicKey]) -> Self {
         let mut keys = EcdsaClientKeys {
             client_keys_c: [riot_sys::ecdsa_public_key_t {
                 x: ptr::null(),
