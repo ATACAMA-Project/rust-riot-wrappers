@@ -166,6 +166,9 @@ pub mod tcs37727;
 #[cfg(riot_module_bmx280)]
 pub mod bmx280;
 
+#[cfg(riot_module_dht)]
+pub mod dht;
+
 #[cfg(riot_module_microbit)]
 pub mod microbit;
 
