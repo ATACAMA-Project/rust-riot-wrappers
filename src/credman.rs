@@ -170,6 +170,15 @@ impl<'a> Credential<'a> {
     }
 }
 
+impl <'a> Drop for Credential<'a> {
+    fn drop (&mut self){
+        unsafe {
+            riot_sys::credman_delete(self.credential.tag, self.credential.type_);
+        }
+    }
+}
+
+
 pub fn scope<Main, RMain>(credential: &Credential, main: Main) -> Result<RMain, CredmanStatus>
 where
     Main: FnOnce() -> RMain,
@@ -186,7 +195,7 @@ where
 }
 
 // int credman_add(const credman_credential_t *credential);
-fn credman_add(credential: &Credential) -> CredmanStatus {
+pub fn credman_add(credential: &Credential) -> CredmanStatus {
     let res = unsafe {
         riot_sys::credman_add(&credential.credential as *const riot_sys::credman_credential_t)
     };
@@ -194,7 +203,7 @@ fn credman_add(credential: &Credential) -> CredmanStatus {
 }
 
 // int credman_get(credman_credential_t *credential, credman_tag_t tag, credman_type_t type);
-pub fn credman_get(tag: CredmanTag, typ: CredmanType) -> Result<CredentialRef, CredmanStatus> {
+pub unsafe fn credman_get(tag: CredmanTag, typ: CredmanType) -> Result<CredentialRef, CredmanStatus> {
     //TOD: CredmanCredRef zurückgeben
     let mut cred: riot_sys::credman_credential_t = Default::default();
     let res = unsafe {
@@ -208,6 +217,12 @@ pub fn credman_get(tag: CredmanTag, typ: CredmanType) -> Result<CredentialRef, C
         CredmanStatus::CredmanOK => Ok(CredentialRef { credential: cred }),
         status => Err(status),
     }
+}
+
+pub fn credman_delete(tag: CredmanTag, typ: CredmanType) {
+    unsafe {
+        riot_sys::credman_delete(tag,CredmanType::to_c(typ))
+    };
 }
 
 // int credman_get_used_count(void);
