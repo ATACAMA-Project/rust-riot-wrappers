@@ -169,6 +169,9 @@ pub mod bmx280;
 #[cfg(riot_module_dht)]
 pub mod dht;
 
+#[cfg(riot_module_ds18)]
+pub mod ds18;
+
 #[cfg(riot_module_microbit)]
 pub mod microbit;
 
