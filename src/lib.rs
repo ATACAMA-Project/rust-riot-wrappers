@@ -124,6 +124,9 @@ pub mod adc;
 #[cfg(riot_module_periph_dac)]
 pub mod dac;
 
+#[cfg(riot_module_periph_timer)]
+pub mod timer;
+
 #[cfg(riot_module_ztimer)]
 pub mod ztimer;
 
