@@ -19,7 +19,7 @@ build-test:
       mkdir -p .cargo
       echo '[patch.crates-io]' >> .cargo/config.toml
       echo 'riot-wrappers = { path = "../", version = "*" }' >> .cargo/config.toml
-      echo 'riot-sys = { git = "https://github.com/RIOT-OS/rust-riot-sys" }' >> .cargo/config.toml
+      echo 'riot-sys = { git = "https://gitlab-ci-token:'${CI_JOB_TOKEN}'@gitlab.informatik.uni-bremen.de/atacama/rust-riot-sys.git" }' >> .cargo/config.toml
 
     - |
       # Build on selected platforms
