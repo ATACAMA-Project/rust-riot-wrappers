@@ -193,6 +193,10 @@ pub mod led;
 #[cfg(riot_module_periph_pm)]
 pub mod pm;
 
+
+#[cfg(riot_module_credman)]
+pub mod credman;
+
 #[cfg(riot_module_auto_init)]
 pub mod auto_init;
 
