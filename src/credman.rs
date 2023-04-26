@@ -68,7 +68,7 @@ pub struct CredentialRef {
 }
 
 /// unsigned 16 bit number. needed for every new credential as an identifier
-type CredmanTag = u16;
+pub type CredmanTag = u16;
 
 /// Enum for the two possible credential types
 /// passes the scope to manage the lifetime and ensure everything's not deleted before the struct goes out of scope
