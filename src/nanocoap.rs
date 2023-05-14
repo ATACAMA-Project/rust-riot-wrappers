@@ -1,31 +1,10 @@
 //! Wrapper containing structs and functions from nanocoap.h
 //!
-use core::ffi::{c_char, c_int, c_void};
 use core::mem::MaybeUninit;
-use riot_wrappers::{println, riot_sys, riot_sys::libc};
+use {riot_sys, riot_sys::libc};
 
-//! Relevant structs and enums from nanocoap.h
-
-// fallback if no size for a message-buffer is given
-const COAP_DEFAULT_BUFFER_SIZE: usize = 1024;
-
-/// WIP
-pub enum CoapPacketError {
-    HeaderBuildError,
-    ParseError,
-    ReplyError,
-    SmallBufferError,
-    PayloadWriteError,
-    TreeHandleError,
-    TypeMatchError,
-    CodeMatchError,
-    MethodMatchError,
-    ClassDetailCombinationError,
-    MallocError,
-    HandlingError,
-    NoRequestError,
-}
-
+/// Enum containing the possible methods for a CoapPacket
+///
 pub enum CoapMethod {
     Get,
     Put,
@@ -37,6 +16,17 @@ pub enum CoapMethod {
 }
 
 impl CoapMethod {
+    /// Translates the constants from the C-Bindings to CoapMethod enum entries
+    ///
+    /// # Arguments
+    ///
+    /// * `input` - The to be translated constant from C-Bindings
+    ///
+    /// # Return
+    ///
+    /// Returns a Result containing either the matching enum entry from CoapMethod or a
+    /// MethodMatchError if the constant couldn't be matched
+    ///
     pub fn from_c(input: u32) -> Result<Self, CoapPacketError> {
         match input {
             riot_sys::COAP_METHOD_GET => Ok(Self::Get),
@@ -50,6 +40,16 @@ impl CoapMethod {
         }
     }
 
+    /// Translates CoapMethod enum entries to constants from the C-Bindings
+    ///
+    /// # Arguments
+    ///
+    /// * `self` - The to be translated enum entry
+    ///
+    /// # Return
+    ///
+    /// Returns the matching constant from the C-Bindings
+    ///
     pub fn to_c(self) -> u32 {
         match self {
             Self::Get => riot_sys::COAP_METHOD_GET,
@@ -63,6 +63,8 @@ impl CoapMethod {
     }
 }
 
+/// Enum containing the possible message types for CoapPackets
+///
 pub enum CoapMessageType {
     Con,
     Non,
@@ -71,6 +73,17 @@ pub enum CoapMessageType {
 }
 
 impl CoapMessageType {
+    /// Translates the constants from the C-Bindings to CoapMessageType enum entries
+    ///
+    /// # Arguments
+    ///
+    /// * `input` - The to be translated constant from C-Bindings
+    ///
+    /// # Return
+    ///
+    /// Returns a Result containing either the matching enum entry from CoapMessageType or a
+    /// TypeMatchError if the constant couldn't be matched
+    ///
     pub fn from_c(input: u32) -> Result<Self, CoapPacketError> {
         match input {
             riot_sys::COAP_TYPE_CON => Ok(Self::Con),
@@ -81,6 +94,16 @@ impl CoapMessageType {
         }
     }
 
+    /// Translates CoapMessageType enum entries to constants from the C-Bindings
+    ///
+    /// # Arguments
+    ///
+    /// * `self` - The to be translated enum entry
+    ///
+    /// # Return
+    ///
+    /// Returns the matching constant from the C-Bindings
+    ///
     pub fn to_c(self) -> u32 {
         match self {
             Self::Con => riot_sys::COAP_TYPE_CON,
@@ -91,6 +114,8 @@ impl CoapMessageType {
     }
 }
 
+/// Enum containing the possible Code Classes for CoapPackets
+///
 pub enum CoapCodeClass {
     // Requests 0.x
     Request,
@@ -108,6 +133,17 @@ pub enum CoapCodeClass {
 }
 
 impl CoapCodeClass {
+    /// Translates the constants from the C-Bindings to CoapCodeClass enum entries
+    ///
+    /// # Arguments
+    ///
+    /// * `input` - The to be translated constant from C-Bindings
+    ///
+    /// # Return
+    ///
+    /// Returns a Result containing either the matching enum entry from CoapMessageType or a
+    /// CodeMatchError if the constant couldn't be matched
+    ///
     pub fn from_c(input: u32) -> Result<Self, CoapPacketError> {
         match input {
             riot_sys::COAP_CLASS_REQ => Ok(Self::Request),
@@ -118,6 +154,16 @@ impl CoapCodeClass {
         }
     }
 
+    /// Translates CoapCodeClass enum entries to constants from the C-Bindings
+    ///
+    /// # Arguments
+    ///
+    /// * `self` - The to be translated enum entry
+    ///
+    /// # Return
+    ///
+    /// Returns the matching constant from the C-Bindings
+    ///
     pub fn to_c(self) -> u32 {
         match self {
             Self::Request => riot_sys::COAP_CLASS_REQ,
@@ -128,7 +174,27 @@ impl CoapCodeClass {
     }
 }
 
+/// Enum containing the possible Message Codes for CoapPackets
+///
 pub enum CoapCode {
+    // Requests (0.x)
+    // 0.00
+    EmptyRequest,
+
+    Get,
+
+    Put,
+
+    Post,
+
+    Delete,
+
+    Fetch,
+
+    Patch,
+
+    IPatch,
+
     // Success (2.x)
     // 2.01, Response to POST and PUT
     Created,
@@ -215,8 +281,27 @@ pub enum CoapCode {
 }
 
 impl CoapCode {
+    /// Translates the constants from the C-Bindings to CoapCode enum entries
+    ///
+    /// # Arguments
+    ///
+    /// * `input` - The to be translated constant from C-Bindings
+    ///
+    /// # Return
+    ///
+    /// Returns a Result containing either the matching enum entry from CoapCode or a
+    /// CodeMatchError if the constant couldn't be matched
+    ///
     pub fn from_c(input: u32) -> Result<CoapCode, CoapPacketError> {
         match input {
+            riot_sys::COAP_CODE_EMPTY => Ok(Self::EmptyRequest),
+            riot_sys::COAP_METHOD_GET => Ok(Self::Get),
+            riot_sys::COAP_METHOD_PUT => Ok(Self::Put),
+            riot_sys::COAP_METHOD_POST => Ok(Self::Post),
+            riot_sys::COAP_METHOD_DELETE => Ok(Self::Delete),
+            riot_sys::COAP_METHOD_FETCH => Ok(Self::Fetch),
+            riot_sys::COAP_METHOD_PATCH => Ok(Self::Patch),
+            riot_sys::COAP_METHOD_IPATCH => Ok(Self::IPatch),
             riot_sys::COAP_CODE_CREATED => Ok(Self::Created),
             riot_sys::COAP_CODE_DELETED => Ok(Self::Deleted),
             riot_sys::COAP_CODE_VALID => Ok(Self::Valid),
@@ -247,8 +332,26 @@ impl CoapCode {
         }
     }
 
+    /// Translates CoapCode enum entries to constants from the C-Bindings
+    ///
+    /// # Arguments
+    ///
+    /// * `self` - The to be translated enum entry
+    ///
+    /// # Return
+    ///
+    /// Returns the matching constant from the C-Bindings
+    ///
     pub fn to_c(self) -> u32 {
         match self {
+            Self::EmptyRequest => riot_sys::COAP_CODE_EMPTY,
+            Self::Get => riot_sys::COAP_METHOD_GET,
+            Self::Put => riot_sys::COAP_METHOD_PUT,
+            Self::Post => riot_sys::COAP_METHOD_POST,
+            Self::Delete => riot_sys::COAP_METHOD_DELETE,
+            Self::Fetch => riot_sys::COAP_METHOD_FETCH,
+            Self::Patch => riot_sys::COAP_METHOD_PATCH,
+            Self::IPatch => riot_sys::COAP_METHOD_IPATCH,
             Self::Created => riot_sys::COAP_CODE_CREATED,
             Self::Deleted => riot_sys::COAP_CODE_DELETED,
             Self::Valid => riot_sys::COAP_CODE_VALID,
@@ -279,14 +382,52 @@ impl CoapCode {
     }
 }
 
-/// todo: enum useful? only one version is defined
-/// todo: change getVersion()-signature if enum stays
+/// Enum containing the possible Version identifiers for CoapPackets
+///
 pub enum CoapVersion {
     // Defined in RFC 7252
     // only version used in RIOT
     V1 = riot_sys::COAP_V1 as isize,
 }
 
+impl CoapVersion {
+    /// Translates the constants from the C-Bindings to CoapVersion enum entries
+    ///
+    /// # Arguments
+    ///
+    /// * `input` - The to be translated constant from C-Bindings
+    ///
+    /// # Return
+    ///
+    /// Returns a Result containing either the matching enum entry from CoapVersion or a
+    /// VersionUnknownError if the constant couldn't be matched
+    ///
+    pub fn from_c(input: u32) -> Result<Self, CoapPacketError> {
+        match input {
+            riot_sys::COAP_V1 => Ok(Self::V1),
+            _ => Err(CoapPacketError::VersionUnknownError),
+        }
+    }
+
+    /// Translates CoapVersion enum entries to constants from the C-Bindings
+    ///
+    /// # Arguments
+    ///
+    /// * `self` - The to be translated enum entry
+    ///
+    /// # Return
+    ///
+    /// Returns the matching constant from the C-Bindings
+    ///
+    pub fn to_c(self) -> u32 {
+        match self {
+            Self::V1 => riot_sys::COAP_V1,
+        }
+    }
+}
+
+/// Enum containing the possible Content Format identifier for CoapPackets
+///
 pub enum CoapContentFormat {
     Text,
     Link,
@@ -310,7 +451,18 @@ pub enum CoapContentFormat {
 }
 
 impl CoapContentFormat {
-    pub fn from_c(input: libc::c_uint) -> Self {
+    /// Translates the constants from the C-Bindings to CoapContentFormat enum entries
+    ///
+    /// # Arguments
+    ///
+    /// * `input` - The to be translated constant from C-Bindings
+    ///
+    /// # Return
+    ///
+    /// Returns either the matching enum entry from CoapContentFormat or CoapContentFormat::None if
+    /// the constant couldn't be matched
+    ///
+    pub fn from_c(input: u32) -> Self {
         match input {
             riot_sys::COAP_FORMAT_TEXT => Self::Text,
             riot_sys::COAP_FORMAT_LINK => Self::Link,
@@ -335,6 +487,16 @@ impl CoapContentFormat {
         }
     }
 
+    /// Translates CoapContentFormat enum entries to constants from the C-Bindings
+    ///
+    /// # Arguments
+    ///
+    /// * `self` - The to be translated enum entry
+    ///
+    /// # Return
+    ///
+    /// Returns the matching constant from the C-Bindings
+    ///
     pub fn to_c(self) -> libc::c_uint {
         match self {
             Self::Text => riot_sys::COAP_FORMAT_TEXT,
@@ -361,314 +523,488 @@ impl CoapContentFormat {
     }
 }
 
-/// justified to have their own structs? {
-pub struct CoapResource {
-    resource: *mut riot_sys::coap_resource_t
-}
+// todo: figure out resource handling in rust
 
-pub struct CoapHandler {
-    handler: *mut libc::c_void
-}
-/// }
-
+/// Struct used to store the CoAP resource request handler context
+///
 pub struct CoapRequestContext {
-    ctx: *mut riot_sys::coap_request_ctx_t
+    ctx: riot_sys::coap_request_ctx_t,
 }
 
 impl CoapRequestContext {
     // todo: find way to init safely
-    pub unsafe fn new(remote: *mut riot_sys::sock_udp_ep_t) -> Self {
-        let ctx: *mut riot_sys::coap_request_ctx_t;
+    /// Creates and initializes a Coap Request Context and stores it in a CoapRequestContext
+    ///
+    /// # Arguments
+    ///
+    /// * `remote` - The pointer to endpoint of the request
+    ///
+    /// # Returns
+    ///
+    /// Returns a CoapRequestContext struct that contains the initialized request context
+    ///
+    pub fn new(remote: &mut riot_sys::sock_udp_ep_t) -> Self {
         unsafe {
-            ctx = MaybeUninit::uninit().assume_init_mut();
-            riot_sys::coap_request_ctx_init(ctx, remote);
+            let mut ctx = MaybeUninit::<riot_sys::coap_request_ctx_t>::uninit();
+            riot_sys::coap_request_ctx_init(
+                ctx.assume_init_mut() as *mut riot_sys::coap_request_ctx_t,
+                remote,
+            );
+            Self {
+                ctx: ctx.assume_init(),
+            }
         }
-        CoapRequestContext { ctx }
     }
 
-    // todo: how to handle c_chars? lifetimes?
-    pub fn get_path(&self) {
+    /*
+    pub fn get_path(&self) -> String {
+        // todo: implement
+        // todo: how to handle c_chars? lifetimes?
         let ret = unsafe { riot_sys::coap_request_ctx_get_path(self.ctx) };
     }
 
-    // todo: giving back pointer ok?
+     */
+
+    // todo: alter to not give back pointer
     pub fn get_remote_udp(&self) -> *const riot_sys::sock_udp_ep_t {
-        unsafe { riot_sys::coap_request_ctx_get_remote_udp(self.ctx) }
+        unsafe {
+            riot_sys::coap_request_ctx_get_remote_udp(
+                &self.ctx as *const riot_sys::coap_request_ctx_t,
+            )
+        }
+    }
+
+    // todo: alter to not give back pointer
+    pub unsafe fn get_context(&self) -> *mut libc::c_void {
+        unsafe { (*self.ctx.resource).context }
     }
 }
 
+/// struct containing the CoAP PDU parsing context structure and the packet buffer
+///
+// todo: Lifetime specifiers needed?
+// todo: Dropping?
 pub struct CoapPacket {
     pkt: *mut riot_sys::coap_pkt_t,
-    pkt_buf: *mut u8,
-    buffer_len: usize
+    pkt_buffer: *mut u8,
+    pkt_len: usize,
+}
+
+/// Enum containing Possible errors of CoapPacket
+///
+pub enum CoapPacketError {
+    HeaderBuildError,
+    ParseError,
+    ReplyError,
+    SmallBufferError,
+    PayloadWriteError,
+    TreeHandleError,
+    TypeMatchError,
+    CodeMatchError,
+    MethodMatchError,
+    ClassDetailCombinationError,
+    AllocationError,
+    HandlingError,
+    NoRequestError,
+    VersionUnknownError,
+    TokenSizeError,
+    PacketTooBigError,
+    PayloadTooBigError,
+    OptionError,
 }
 
 impl CoapPacket {
-    ///@note: Wraps riot_sys::coap_pkt_init
-    /// combine to new() function with coap_build_hdr
-    ///     --> come up with buffer solution
+    /// Creates a CoapPacket, and fills the parsing structure and packet buffer according to the
+    /// arguments
     ///
-    /// todo: add payload
+    /// # Arguments
+    ///
+    /// * `type_` - The type of the packet (e.g. Con, Non, ...)
+    ///
+    /// * `token_opt` - An Option, which contains either None if the token length is supposed to be 0
+    ///             or Some with the token value as &[u8]
+    ///
+    /// * `code` - The message code for the packet
+    ///
+    /// * `id` - The id for the packet
+    ///
+    /// * `len` - An Option, which contains either None if the default package size should be
+    ///           chosen or Some with an usize value which contains the chosen size for the package
+    ///           buffer
+    ///
+    /// # Returns
+    ///
+    /// Returns a Result with either an Ok with a CoapPacket with an allocated package buffer with
+    /// initialized header or an Err with a CoapPacketError
+    ///
+    /// # Errors
+    ///
+    /// * `AllocationError` - If an error occurs when allocating the package buffer
+    ///
+    /// * `HeaderBuildError` - If an error occurs while building the header
+    ///
+    // todo: zeroing of the out-buf necessary?
+    // todo: method2flag needed?
+    // todo: add options
     pub fn new(
+        buffer: &mut [u8],
         type_: CoapMessageType,
-        token: Option<&[u8]>,
-        code: CoapCode,
+        token_opt: Option<&[u8]>,
+        code_opt: Option<CoapCode>,
         id: u16,
-        len: Option<usize>,
+        payload_opt: Option<&[u8]>,
     ) -> Result<Self, CoapPacketError> {
-        // todo: figure out lifetimes
-
-        let buffer_len = match_len(len);
-
-        // use of dynamic memory allocation allowed?
-        let pkt_buf = unsafe { riot_sys::malloc(buffer_len as riot_sys::size_t) } as *mut u8;
-
         let token_len;
-        let token_ = match token {
+        let token = match token_opt {
             Some(val) => {
-                token_len = val.len();
+                if val.len() <= 8 {
+                    token_len = val.len();
+                } else {
+                    return Err(CoapPacketError::TokenSizeError);
+                }
                 val
             }
             None => {
                 token_len = 0;
-                // todo: check rfc if this is a correct solution?
                 &[0]
             }
         };
 
+        // return if buffer can't hold the header
+        if buffer.len() < 4 + token_len {
+            return Err(CoapPacketError::SmallBufferError);
+        }
+
+        let code = match code_opt {
+            Some(val) => val,
+            None => CoapCode::EmptyRequest,
+        };
+
         let hdr_size = unsafe {
             riot_sys::coap_build_hdr(
-                pkt_buf as *mut riot_sys::coap_hdr_t,
+                buffer.as_mut_ptr() as *mut riot_sys::coap_hdr_t,
                 type_.to_c(),
-                token_.as_ptr() as *mut u8,
+                token.as_ptr() as *mut u8,
                 token_len as riot_sys::size_t,
                 code.to_c(),
                 id,
             )
         };
 
-        if hdr_size < 0 {
-            return Err(CoapPacketError::HeaderBuildError);
-        }
+        let mut pkt = MaybeUninit::<riot_sys::coap_pkt_t>::uninit();
 
-        let pkt: *mut riot_sys::coap_pkt_t;
         unsafe {
-            pkt = MaybeUninit::uninit().assume_init_mut();
             riot_sys::coap_pkt_init(
-                pkt,
-                pkt_buf,
-                buffer_len as riot_sys::size_t,
+                pkt.as_mut_ptr() as *mut riot_sys::coap_pkt_t,
+                buffer.as_mut_ptr() as *mut u8,
+                buffer.len() as riot_sys::size_t,
                 hdr_size as riot_sys::size_t,
             );
+        }
+
+        // todo: add option input
+        let optnum: u16 = 0;
+
+        // set payload marker if payload will be written
+        if payload_opt.is_some() {
+            let ret = unsafe {
+                riot_sys::coap_opt_finish(
+                    pkt.assume_init_mut() as *mut riot_sys::coap_pkt_t,
+                    optnum,
+                )
+            };
+            if ret < 0 {
+                return Err(CoapPacketError::OptionError);
+            }
+        }
+
+        let payload_len = match payload_opt {
+            Some(val) => val.len(),
+            None => 0,
         };
 
-        Ok(CoapPacket {
-            pkt,
-            pkt_buf,
-            buffer_len,
+        if payload_len > 0 {
+            let ret = unsafe {
+                riot_sys::coap_payload_put_bytes(
+                    pkt.assume_init_mut(),
+                    payload_opt.unwrap().as_ptr() as *const core::ffi::c_void,
+                    payload_len as riot_sys::size_t,
+                )
+            };
+            if ret < 0 {
+                return Err(CoapPacketError::PayloadWriteError);
+            }
+        }
+
+        Ok(Self {
+            pkt: unsafe { pkt.as_mut_ptr() },
+            pkt_buffer: buffer.as_mut_ptr(),
+            pkt_len: buffer.len(),
         })
     }
 
+    /// Builds a reply to a received CoapPacket with payload
+    ///
+    /// # Arguments
+    ///
+    /// * `self` - The received CoapPacket that we generate a reply to
+    ///
+    /// * `code` - The message code for the reply
+    ///
+    /// * `content_format_opt` - The Option for the content_format of the payload. None if the payload
+    ///                      isn't in an (in the enum) specified format, Some if an enum entry
+    ///                      matches the format of the payload
+    ///
+    /// * `len` - The length of the to be allocated packet buffer
+    ///
+    /// * `payload` - The payload as byte-slice
+    ///
+    /// # Returns
+    ///
+    /// Returns a Result containing either an Ok with the resulting packet buffer including the payload as
+    /// byte-slice on success or an Err with the corresponding CoapPacketError on failure
+    ///
+    /// # Safety
+    ///
+    /// The resulting byte-slice currently has to be freed after sending the resulting package
+    ///
+    /// # Errors
+    ///
+    /// * `AllocationError` - If an error occurs while allocating the package buffer
+    ///
+    /// * `SmallBufferError` - If the allocated buffer is too small to hold the resulting package
+    ///
+    /// * `ReplyError` - If other errors occurred while building the reply
+    ///
     pub fn reply_simple(
-        &self,
+        &mut self,
         code: CoapCode,
-        content_format: CoapContentFormat,
-        len: Option<usize>,
+        content_format_opt: Option<CoapContentFormat>,
+        resp_buffer: &mut [u8],
         payload: &[u8],
-    ) -> Result<&[u8], CoapPacketError> {
-        let buffer_len = match len {
+    ) -> Result<(), CoapPacketError> {
+        let content_format = match content_format_opt {
             Some(val) => val,
-            None => COAP_DEFAULT_BUFFER_SIZE,
+            None => CoapContentFormat::None,
         };
-
-        //let pkt_buffer: [u8; COAP_BUFFER_SIZE] = [0; COAP_BUFFER_SIZE];
-        let pkt_buffer: *mut u8 =
-            unsafe { riot_sys::malloc(buffer_len as riot_sys::size_t) as *mut u8 };
-
-        if pkt_buffer.is_null() {
-            return Err(CoapPacketError::MallocError);
-        }
 
         let ret = unsafe {
             riot_sys::coap_reply_simple(
-                self.pkt,
+                self.pkt as *mut riot_sys::coap_pkt_t,
                 code.to_c(),
-                pkt_buffer,
-                buffer_len as riot_sys::size_t,
+                resp_buffer.as_ptr() as *mut u8,
+                resp_buffer.len() as riot_sys::size_t,
                 content_format.to_c(),
                 payload.as_ptr() as *mut libc::c_void,
                 payload.len() as riot_sys::size_t,
             )
         };
 
-        if ret == (riot_sys::ENOSPC as i32) * -1 {
+        if ret == -(riot_sys::ENOSPC as i32) {
             Err(CoapPacketError::SmallBufferError)
         } else if ret < 0 {
             Err(CoapPacketError::ReplyError)
         } else {
-            // todo: must be freed after! better solution?
-            Ok(unsafe { core::slice::from_raw_parts(pkt_buffer, buffer_len) })
+            Ok(())
         }
     }
 
-    pub fn build_reply(
-        &self,
-        code: CoapCode,
-        resp_len: Option<usize>,
-        payload_len: usize,
-    ) -> Result<&[u8], CoapPacketError> {
-        let len = match_len(resp_len);
-
-        let resp_buf = unsafe { riot_sys::malloc(len as riot_sys::size_t) } as *mut u8;
-        if resp_buf.is_null() {
-            return Err(CoapPacketError::MallocError);
-        }
-
-        let ret = unsafe {
-            riot_sys::coap_build_reply(
-                self.pkt,
-                code.to_c(),
-                resp_buf,
-                len as riot_sys::size_t,
-                payload_len as riot_sys::size_t,
-            )
-        };
-
-        if ret == (riot_sys::ENOSPC as i32) * -1 {
-            unsafe {
-                riot_sys::free(resp_buf as *mut core::ffi::c_void);
-            }
-            Err(CoapPacketError::SmallBufferError)
-        } else if ret < 0 {
-            unsafe {
-                riot_sys::free(resp_buf as *mut core::ffi::c_void);
-            }
-            Err(CoapPacketError::ReplyError)
-        } else {
-            // todo: must be freed after! better solution?
-            Ok(unsafe { core::slice::from_raw_parts_mut(resp_buf, len) })
-        }
-    }
-
-
-    ///@note: Wraps riot_sys::coap_parse
-    /// Parse a CoAP PDU
+    /// Builds a reply to a received CoapPacket with space for a payload
     ///
     /// # Arguments
     ///
-    /// * `buf` - The buffer containing a received CoAP-Message
+    /// * `self` - The received CoapPacket that we generate a reply to
     ///
-    /// # Return
+    /// * `code` - The message code for the reply
     ///
-    /// Returns Ok with the parsed CoapPacket and Err with an error message otherwise
+    /// * `resp_len` - Option containing None if the resulting buffer should have the default
+    ///                buffer size or Some with a usize value with the length of the to be allocated
+    ///                packet buffer
     ///
-    pub fn read_packet(buf: &[u8]) -> Result<CoapPacket, CoapPacketError> {
-        unsafe {
-            let pkt: *mut riot_sys::coap_pkt_t = MaybeUninit::uninit().assume_init_mut();
+    /// * `payload_len` - Option containing None if the resulting packet shall contain a payload or
+    ///                   Some with a usize value with the supposed payload length
+    ///
+    /// # Returns
+    ///
+    /// Returns a Result containing either an Ok with the resulting packet buffer with space for the
+    /// payload as byte-slice on success or an Err with the corresponding CoapPacketError on failure
+    ///
+    /// # Safety
+    ///
+    /// The resulting byte-slice currently has to be freed after sending the resulting package
+    ///
+    /// # Errors
+    ///
+    /// * `AllocationError` - If an error occurs while allocating the package buffer
+    ///
+    /// * `SmallBufferError` - If the allocated buffer is too small to hold the resulting package
+    ///
+    /// * `ReplyError` - If other errors occurred while building the reply
+    ///
+    pub fn reply_no_payload(
+        &mut self,
+        resp_buffer: &mut [u8],
+        code: CoapCode,
+    ) -> Result<(), CoapPacketError> {
+        let ret = unsafe {
+            riot_sys::coap_build_reply(
+                self.pkt as *mut riot_sys::coap_pkt_t,
+                code.to_c(),
+                resp_buffer.as_ptr() as *mut u8,
+                resp_buffer.len() as riot_sys::size_t,
+                0 as riot_sys::size_t,
+            )
+        };
 
-            if riot_sys::coap_parse(pkt, buf.as_ptr() as *mut u8, buf.len() as riot_sys::size_t) < 0
-            {
-                Err(CoapPacketError::ParseError)
-            } else {
-                Ok(CoapPacket {
-                    pkt,
-                    pkt_buf: buf.as_ptr() as *mut u8,
-                    buffer_len: buf.len(),
-                })
-            }
+        if ret == -(riot_sys::ENOSPC as i32) {
+            Err(CoapPacketError::SmallBufferError)
+        } else if ret < 0 {
+            Err(CoapPacketError::ReplyError)
+        } else {
+            Ok(())
         }
     }
 
-    /// todo: make pretty, fill and return CoapVersionNumber enum
-    pub fn get_version(&self) -> u32 {
-        unsafe {
-            riot_sys::inline::coap_get_ver(self.pkt as *const riot_sys::inline::coap_pkt_t)
+    /// Parse a CoAP PDU into a CoapPacket struct
+    ///
+    /// # Arguments
+    ///
+    /// * `buf` - The byte-slice containing a received CoAP-Message
+    ///
+    /// # Return
+    ///
+    /// Returns a Result with either Ok with the parsed CoapPacket or an Err with a ParseError
+    /// otherwise
+    ///
+    pub fn read_packet(buf: &mut [u8]) -> Result<Self, CoapPacketError> {
+        let mut pkt = unsafe { MaybeUninit::<riot_sys::coap_pkt_t>::uninit() };
+
+        if unsafe {
+            riot_sys::coap_parse(
+                pkt.as_mut_ptr() as *mut riot_sys::coap_pkt_t,
+                buf.as_ptr() as *mut u8,
+                buf.len() as riot_sys::size_t,
+            )
+        } < 0
+        {
+            Err(CoapPacketError::ParseError)
+        } else {
+            Ok(Self {
+                pkt: unsafe { pkt.as_mut_ptr() },
+                pkt_buffer: buf.as_mut_ptr(),
+                pkt_len: buf.len(),
+            })
+        }
+    }
+
+    pub fn get_version(&self) -> Result<CoapVersion, CoapPacketError> {
+        CoapVersion::from_c(unsafe { riot_sys::inline::coap_get_ver(crate::inline_cast(self.pkt)) })
+        //CoapVersion::from_c( unsafe { riot_sys::inline::coap_get_ver(&self.pkt as *const riot_sys::inline::coap_pkt_t) })
+    }
+
+    pub fn get_token_len(&self) -> usize {
+        unsafe { riot_sys::inline::coap_get_token_len(crate::inline_cast(self.pkt)) as usize }
+    }
+
+    pub fn get_token(&self) -> Result<Option<&[u8]>, CoapPacketError> {
+        let token_len =
+            unsafe { riot_sys::inline::coap_get_token_len(crate::inline_cast(self.pkt)) };
+        let token = unsafe { riot_sys::inline::coap_get_token(crate::inline_cast(self.pkt)) };
+        if token_len > 8 {
+            Err(CoapPacketError::TokenSizeError)
+        } else {
+            match token_len {
+                0 => Ok(None),
+                _ => Ok(Some(unsafe {
+                    core::slice::from_raw_parts(token as *const u8, token_len as usize)
+                })),
+            }
         }
     }
 
     pub fn get_id(&self) -> u32 {
-        unsafe {
-            riot_sys::inline::coap_get_id(self.pkt as *const riot_sys::inline::coap_pkt_t)
-        }
+        unsafe { riot_sys::inline::coap_get_id(crate::inline_cast(self.pkt)) }
     }
 
+    /*
     pub fn get_type(&self) -> Result<CoapMessageType, CoapPacketError> {
-        CoapMessageType::from_c(unsafe {
-            riot_sys::inline::coap_get_type(self.pkt as *const riot_sys::inline::coap_pkt_t)
-        })
+        CoapMessageType::from_c(unsafe { ((*self.pkt.hdr).ver_t_tkl & 0x30) >> 4 } as u32)
     }
+
+     */
 
     pub fn get_message_code_with_class(
         &self,
     ) -> Result<(CoapCodeClass, CoapCode), CoapPacketError> {
-        let code = unsafe { (*(*self.pkt).hdr).code };
+        let detail = unsafe {
+            // todo: right method?
+            riot_sys::inline::coap_get_code_detail(crate::inline_cast(self.pkt))
+        };
+        let class = unsafe { riot_sys::inline::coap_get_code_class(crate::inline_cast(self.pkt)) };
 
-        let class = code << 5;
-        let class_;
-
-        match CoapCodeClass::from_c(class as u32) {
-            Ok(val) => class_ = val,
-            Err(e) => return Err(e),
-        }
-
-        match CoapCode::from_c(code as u32) {
-            Ok(val) => Ok((class_, val)),
+        match CoapCodeClass::from_c(detail) {
+            Ok(val) => match CoapCode::from_c(class) {
+                Ok(val_) => Ok((val, val_)),
+                Err(e) => Err(e),
+            },
             Err(e) => Err(e),
         }
     }
 
     pub fn get_message_code_class(&self) -> Result<CoapCodeClass, CoapPacketError> {
         CoapCodeClass::from_c(unsafe {
-            ((*(*self.pkt).hdr).code >> 5) as u32
+            riot_sys::inline::coap_get_code_class(crate::inline_cast(self.pkt))
         })
     }
 
-    pub fn get_message_code(&self) -> Result<CoapCodeClass, CoapPacketError> {
-        CoapCodeClass::from_c(unsafe {
-            (*(*self.pkt).hdr).code as u32
+    pub fn get_message_code(&self) -> Result<CoapCode, CoapPacketError> {
+        CoapCode::from_c(unsafe {
+            riot_sys::inline::coap_get_code_detail(crate::inline_cast(self.pkt))
         })
     }
 
-    pub fn get_content_type(&self) -> CoapContentFormat {
+    pub fn get_content_type(&mut self) -> CoapContentFormat {
         CoapContentFormat::from_c(unsafe { riot_sys::coap_get_content_type(self.pkt) })
     }
 
-    pub fn get_accept(&self) -> CoapContentFormat {
+    pub fn get_accept(&mut self) -> CoapContentFormat {
         CoapContentFormat::from_c(unsafe { riot_sys::coap_get_accept(self.pkt) })
     }
 
+    // todo: implement
+    // todo: find way to appropriately give back C-String
+    /*
+    pub fn get_uri_path(&mut self) {
+        unsafe {
+            riot_sys::inline::coap_get_uri_path(self as *mut riot_sys::inline::coap_pkt_t, );
+        }
+    }
+
+     */
+
     pub fn header_set_code(&self, code: CoapCode) {
         unsafe {
-            (*(*self.pkt).hdr).code = code.to_c() as u8;
+            riot_sys::inline::coap_hdr_set_code(
+                crate::inline_cast_mut((*self.pkt).hdr),
+                code.to_c() as u8,
+            );
         }
     }
 
     pub fn header_set_type(&self, type_: CoapMessageType) {
         unsafe {
             riot_sys::inline::coap_hdr_set_type(
-                (*self.pkt).hdr as *mut riot_sys::inline::coap_hdr_t,
+                crate::inline_cast_mut((*self.pkt).hdr),
                 CoapMessageType::to_c(type_) as libc::c_uint,
             );
         }
     }
 
-    pub fn put_option_empty(&self, last_opt_num: u16, new_op_num: u16) {
-        unsafe {
-            riot_sys::coap_put_option(
-                self.pkt_buf,
-                last_opt_num,
-                new_op_num,
-                riot_sys::inline::NULL as *const libc::c_void,
-                0,
-            );
-        }
-    }
-
-    // todo: check boundaries
+    // todo: options should be tracked in a seperate struct
     pub fn put_option(&self, last_opt_num: u16, new_op_num: u16, data: &[u8]) {
         unsafe {
             riot_sys::coap_put_option(
-                self.pkt_buf,
+                self.pkt_buffer,
                 last_opt_num,
                 new_op_num,
                 data.as_ptr() as *const libc::c_void,
@@ -677,47 +1013,52 @@ impl CoapPacket {
         }
     }
 
-    // todo: better way than to return pointer?
-    pub fn get_payload_start(&self) -> *const u8 {
+    pub fn tree_handler(
+        &mut self,
+        ctx: &mut CoapRequestContext,
+        resp_buffer: &mut [u8],
+        resource: &riot_sys::coap_resource_t,
+        resource_len: usize,
+    ) -> Result<usize, CoapPacketError> {
         unsafe {
-            riot_sys::inline::coap_hdr_data_ptr(
-                (*self.pkt).hdr as *const riot_sys::inline::coap_hdr_t,
-            )
+            let ret = riot_sys::coap_tree_handler(
+                self.pkt,
+                resp_buffer.as_ptr() as *mut u8,
+                resp_buffer.len() as riot_sys::size_t,
+                &mut ctx.ctx,
+                resource,
+                resource_len as riot_sys::size_t,
+            );
+            if ret == -(riot_sys::ENOSPC as riot_sys::ssize_t) {
+                Err(CoapPacketError::SmallBufferError)
+            } else if ret < 0 {
+                Err(CoapPacketError::TreeHandleError)
+            } else {
+                Ok(ret as usize)
+            }
         }
     }
 
     pub fn handle_request(
-        &self,
-        resp_len: Option<usize>,
-        ctx: *mut riot_sys::coap_request_ctx_t,
-    ) -> Result<&[u8], CoapPacketError> {
-        let len = match_len(resp_len);
+        &mut self,
+        ctx: &mut CoapRequestContext,
+        resp_buffer: &mut [u8],
+    ) -> Result<(), CoapPacketError> {
+        let ret = unsafe {
+            riot_sys::coap_handle_req(
+                self.pkt,
+                resp_buffer.as_ptr() as *mut u8,
+                resp_buffer.len() as riot_sys::size_t,
+                &mut ctx.ctx as *mut riot_sys::coap_request_ctx_t,
+            )
+        };
 
-        // malloc buffer here?
-        let resp_buf: *mut u8 = unsafe { riot_sys::malloc(len as riot_sys::size_t) } as *mut u8;
-        if resp_buf.is_null() {
-            return Err(CoapPacketError::MallocError);
-        }
-
-        let ret =
-            unsafe { riot_sys::coap_handle_req(self.pkt, resp_buf, len as riot_sys::size_t, ctx) };
-
-        if ret == (riot_sys::EBADMSG as i32) * -1 {
+        if ret == -(riot_sys::EBADMSG as i32) {
             Err(CoapPacketError::NoRequestError)
         } else if ret < 0 {
-            unsafe { riot_sys::free(resp_buf as *mut core::ffi::c_void) }
             Err(CoapPacketError::HandlingError)
         } else {
-            // todo: must be freed after! better solution?
-            Ok(unsafe { core::slice::from_raw_parts(resp_buf, len) })
+            Ok(())
         }
     }
 }
-
-fn match_len(opt: Option<usize>) -> usize {
-    match opt {
-        Some(val) => val,
-        None => COAP_DEFAULT_BUFFER_SIZE,
-    }
-}
-

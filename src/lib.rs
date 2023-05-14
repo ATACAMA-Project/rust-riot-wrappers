@@ -176,3 +176,6 @@ pub mod interrupt;
 pub mod main;
 
 pub mod led;
+
+#[cfg(riot_module_nanocoap)]
+pub mod nanocoap;
