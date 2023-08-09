@@ -118,6 +118,9 @@ pub mod spi;
 #[cfg(riot_module_periph_uart)]
 pub mod uart;
 
+#[cfg(riot_module_periph_rtc)]
+pub mod rtc;
+
 #[cfg(riot_module_periph_adc)]
 pub mod adc;
 
