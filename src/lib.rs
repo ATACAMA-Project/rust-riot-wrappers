@@ -115,11 +115,23 @@ pub mod msg;
 #[cfg(riot_module_periph_spi)]
 pub mod spi;
 
+#[cfg(riot_module_periph_uart)]
+pub mod uart;
+
+#[cfg(riot_module_periph_rtc)]
+pub mod rtc;
+
 #[cfg(riot_module_periph_adc)]
 pub mod adc;
 
 #[cfg(riot_module_periph_dac)]
 pub mod dac;
+
+#[cfg(riot_module_periph_pwm)]
+pub mod pwm;
+
+#[cfg(riot_module_periph_timer)]
+pub mod timer;
 
 #[cfg(riot_module_ztimer)]
 pub mod ztimer;
@@ -157,6 +169,18 @@ pub mod nimble {
 #[cfg(riot_module_ws281x)]
 pub mod ws281x;
 
+#[cfg(riot_module_tcs37727)]
+pub mod tcs37727;
+
+#[cfg(riot_module_bmx280)]
+pub mod bmx280;
+
+#[cfg(riot_module_dht)]
+pub mod dht;
+
+#[cfg(riot_module_ds18)]
+pub mod ds18;
+
 #[cfg(riot_module_microbit)]
 pub mod microbit;
 
@@ -169,5 +193,15 @@ pub mod main;
 
 pub mod led;
 
+#[cfg(riot_module_periph_pm)]
+pub mod pm;
+
+
+#[cfg(riot_module_credman)]
+pub mod credman;
+
 #[cfg(riot_module_auto_init)]
 pub mod auto_init;
+
+#[cfg(riot_module_periph_qdec)]
+pub mod qdec;

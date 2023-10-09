@@ -1,0 +1,53 @@
+# Based on https://github.com/RIOT-OS/rust-riot-wrappers/tree/main/.github/workflows
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: always
+    - when: never
+
+build-test:
+  image: riot/riotbuild
+  variables:
+    BOARDS: "native sltb001a samr21-xpro"
+
+  script:
+    - |
+      # Checkout Riot and patch .cargo/config.toml to use current checkout
+      git clone "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.informatik.uni-bremen.de/atacama/RIOT-ATACAMA.git" RIOT
+      pushd RIOT
+      rm -f .cargo/config.toml
+      mkdir -p .cargo
+      echo '[patch.crates-io]' >> .cargo/config.toml
+      echo 'riot-wrappers = { path = "../", version = "*" }' >> .cargo/config.toml
+      echo 'riot-sys = { git = "https://gitlab-ci-token:'${CI_JOB_TOKEN}'@gitlab.informatik.uni-bremen.de/atacama/rust-riot-sys.git" }' >> .cargo/config.toml
+
+    - |
+      # Build on selected platforms
+      DIRS='examples/rust-hello-world examples/rust-gcoap tests/rust_minimal'
+      echo "Building $DIRS on $BOARDS"
+      for D in $DIRS; do
+        echo -e "\e[0Ksection_start:`date +%s`:riot_build[collapsed=true]\r\e[0KBuilding $D"
+        pushd "$D"
+        cargo update -p riot-sys -p riot-wrappers --aggressive
+        make buildtest BUILDTEST_MAKE_REDIRECT=''
+        popd
+        echo -e "\e[0Ksection_end:`date +%s`:riot_build\r\e[0K"
+      done
+      popd
+
+    - |
+      # Build tests
+      DIRS="$(echo tests/*/)"
+      export RIOTBASE="$(pwd)/RIOT"
+      echo "Building $DIRS on $BOARDS"
+      for D in $DIRS; do
+        echo -e "\e[0Ksection_start:`date +%s`:tests_build[collapsed=true]\r\e[0KBuilding $D"
+        pushd "$D"
+        make buildtest BUILDTEST_MAKE_REDIRECT=''
+        popd
+        echo -e "\e[0Ksection_end:`date +%s`:tests_build\r\e[0K"
+      done
+
+rustfmt:
+  image: rustlang/rust:nightly
+  script: cargo fmt --check
