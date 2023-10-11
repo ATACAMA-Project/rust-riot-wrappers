@@ -1,5 +1,5 @@
+use core::cell::UnsafeCell;
 use core::ops::{Deref, DerefMut};
-
 /// A mutual exclusion primitive similar to std::sync::RwLock, implemented using RIOT's rwlock.
 ///
 /// Like crate::mutex::Mutex, this knows no poisoning.
@@ -7,7 +7,7 @@ use core::ops::{Deref, DerefMut};
 /// It's unknown whether it's actually a good idea to go this way (with all the
 pub struct RwLock<T> {
     rwlock: riot_sys::pthread_rwlock_t,
-    data: T,
+    data: UnsafeCell<T>,
 }
 
 unsafe impl<T: Send> Send for RwLock<T> {}
@@ -26,8 +26,8 @@ impl<T> RwLock<T> {
         // FIXME actually needless given it only memsets
         unsafe { riot_sys::pthread_rwlock_init(&mut rwlock, 0 as *mut _) };
         RwLock {
-            rwlock: rwlock,
-            data: t,
+            rwlock,
+            data: UnsafeCell::new(t),
         }
     }
 
@@ -83,7 +83,7 @@ impl<'a, T> Deref for RwLockReadGuard<'a, T> {
     type Target = T;
 
     fn deref(&self) -> &T {
-        &self.rwlock.data
+        unsafe { &*self.rwlock.data.get() }
     }
 }
 
@@ -105,13 +105,13 @@ impl<'a, T> Deref for RwLockWriteGuard<'a, T> {
     type Target = T;
 
     fn deref(&self) -> &T {
-        &self.rwlock.data
+        unsafe { &*self.rwlock.data.get() }
     }
 }
 
 impl<'a, T> DerefMut for RwLockWriteGuard<'a, T> {
     fn deref_mut(&mut self) -> &mut T {
-        unsafe { &mut *(&self.rwlock.data as *const _ as *mut _) }
+        unsafe { &mut *self.rwlock.data.get() }
     }
 }
 
