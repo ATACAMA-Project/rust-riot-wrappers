@@ -3,6 +3,7 @@
 
 ///Enum containing the possible error-codes of NanocoapClient
 ///
+#[derive(Debug)]
 pub enum NanocoapClientErrors {
     /// The CoAP socket couldn't be created
     CreateSockErr,
