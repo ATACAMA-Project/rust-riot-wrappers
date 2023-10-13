@@ -1,6 +1,40 @@
 //! Wrapper containing functions from nanocoap_sock.h
 //!
 
+
+#[macro_export]
+macro_rules! as_c_handler {
+    ( $x:expr ) => {
+        {
+            unsafe extern "C" fn hdl(
+                pkt: *mut coap_pkt_t,
+                buf: *mut u8,
+                len: size_t,
+                context: *mut coap_request_ctx_t,
+            ) -> ssize_t {
+                return $x(CoapPacket::from(pkt, buf, len as usize), context);
+            }
+            hdl
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! register_coap_resources {
+    ($($e:expr),*) => {
+        const fn inner<T, const N: usize>(_: &[T; N]) -> usize {
+            N
+        }
+        #[no_mangle]
+        static mut coap_resources: [coap_resource_t; inner(&[$($e),*])] = [$($e.to_c()),*];
+
+        #[no_mangle]
+        static mut coap_resources_numof: u32 = inner(&[$($e),*]) as u32;
+    };
+}
+
+
+
 ///Enum containing the possible error-codes of NanocoapClient
 ///
 pub enum NanocoapClientErrors {
@@ -300,7 +334,7 @@ impl NanocoapClient {
     ///
     /// A new message ID that can be used for a request or response.
     ///
-    pub fn nanocoap_sock_next_msg_id(&mut self) -> u16 {
+    pub fn next_msg_id(&mut self) -> u16 {
         self.sock.msg_id += 1;
         self.sock.msg_id
     }
@@ -317,7 +351,7 @@ impl NanocoapClient {
     ///
     /// Returns Ok with the length of the payload on success and Err with an error message otherwise
     ///
-    pub fn nanocoap_sock_get<'a>(
+    pub fn get<'a>(
         &mut self,
         path: &'a core::ffi::CStr,
         response: &mut [u8],
@@ -353,7 +387,7 @@ impl NanocoapClient {
     ///
     /// Returns Ok with the length of the payload on success and Err with an error message otherwise
     ///
-    pub fn nanocoap_sock_put<'a>(
+    pub fn put<'a>(
         &mut self,
         path: &'a core::ffi::CStr,
         request: &[u8],
@@ -405,7 +439,7 @@ impl NanocoapClient {
     /// Returns Ok with the length of the payload on success and Err with an error message otherwise
     /// Returns Ok(0) when no response buffer is provided
     ///
-    pub fn nanocoap_sock_put_non<'a>(
+    pub fn put_non<'a>(
         &mut self,
         path: &'a core::ffi::CStr,
         request: &[u8],
@@ -456,7 +490,7 @@ impl NanocoapClient {
     ///
     /// Returns Ok with the length of the payload on success and Err with an error message otherwise
     ///
-    pub fn nanocoap_sock_post<'a>(
+    pub fn post<'a>(
         &mut self,
         path: &'a core::ffi::CStr,
         request: &[u8],
@@ -509,7 +543,7 @@ impl NanocoapClient {
     /// Returns Ok with the length of the payload on success and Err with an error message otherwise
     /// Returns Ok(0) when no response buffer is provided
     ///
-    pub fn nanocoap_sock_post_non<'a>(
+    pub fn post_non<'a>(
         &mut self,
         url: &'a core::ffi::CStr,
         request: &[u8],
@@ -558,7 +592,7 @@ impl NanocoapClient {
     ///
     /// Returns Ok on success and Err with an error message otherwise
     ///
-    pub fn nanocoap_sock_delete<'a>(
+    pub fn delete<'a>(
         &mut self,
         path: &'a core::ffi::CStr,
     ) -> Result<(), NanocoapClientErrors> {
@@ -587,7 +621,7 @@ impl NanocoapClient {
     /// Returns Ok with the length of the response on success and Err with an error message
     /// otherwise
     ///
-    pub fn nanocoap_sock_request(
+    pub fn request(
         &mut self,
         mut pkt: riot_sys::coap_pkt_t,
         len: usize,
@@ -683,7 +717,7 @@ impl NanocoapServer {
     /// Returns Ok on success and a BindingLocalOrDroppedPacketsErr when the binding to local fails
     /// or if udp packets are dropped
     ///
-    pub fn nanocoap_server(&mut self, mut buf: &[u8]) -> Result<(), NanocoapServerErrors> {
+    pub fn start(&mut self, mut buf: &[u8]) -> Result<(), NanocoapServerErrors> {
         let raw_local: *mut riot_sys::sock_udp_ep_t =
             &mut self.local.0 as &mut riot_sys::sock_udp_ep_t;
         let raw_buf = buf.as_ptr() as *mut u8;

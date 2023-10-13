@@ -22,6 +22,8 @@
 #![cfg_attr(feature = "actual_never_type", feature(never_type))]
 #![cfg_attr(feature = "nightly_docs", feature(fundamental))]
 
+extern crate alloc;
+
 /// riot-sys is re-exported here as it is necessary in some places when using it to get values (eg.
 /// in [error::NumericError::from_constant]). It is also used in macros such as [static_command!].
 ///
@@ -174,3 +176,7 @@ pub mod led;
 
 #[cfg(riot_module_auto_init)]
 pub mod auto_init;
+
+#[cfg(riot_module_nanocoap)]
+pub mod nanocoap;
+
